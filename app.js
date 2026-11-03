@@ -49,14 +49,14 @@ const IDEO_COLOR = { "agrarianism": "#90ee90", "animal rights": "#009076", "cent
 const ideoColorOf = v => IDEO_COLOR[String(v).split(/[,;]/)[0].trim().toLowerCase()] || "#8A9099";
 
 // ISO-2 → ISO 3166 numeric (world-atlas ids). Places without an id are matched by the map's own name or the
-// database's country name (e.g. Somaliland). Territories without their own shape (Canary Islands, Ceuta, Melilla,
+// database's country name. Territories without their own shape (Canary Islands, Ceuta, Melilla,
 // Madeira) are in the table and filters but not on the map.
 const NUM = {DZ:"012",AO:"024",BJ:"204",BW:"072",BF:"854",BI:"108",CV:"132",CM:"120",CF:"140",TD:"148",KM:"174",CG:"178",
 CD:"180",CI:"384",DJ:"262",EG:"818",GQ:"226",ER:"232",SZ:"748",ET:"231",GA:"266",GM:"270",GH:"288",GN:"324",GW:"624",
 KE:"404",LS:"426",LR:"430",LY:"434",MG:"450",MW:"454",ML:"466",MR:"478",MU:"480",MA:"504",MZ:"508",NA:"516",NE:"562",
 NG:"566",RW:"646",ST:"678",SN:"686",SC:"690",SL:"694",SO:"706",SS:"728",SD:"729",TZ:"834",TG:"768",TN:"788",UG:"800",
 EH:"732",ZM:"894",ZW:"716",ZA:"710",YT:"175",RE:"638",SH:"654"};
-const BY_NAME = {EH:"W. Sahara"};
+const BY_NAME = {EH:"Western Sahara"};
 // Regions of Africa (UN geoscheme), one row each in the ideology chart.
 const REGION = {};
 [["North Africa", "DZ EG LY MA SD TN EH IC EA XC XM"], ["West Africa", "BJ BF CV CI GM GH GN GW LR ML MR NE NG SN SL TG SH"],
@@ -178,6 +178,16 @@ function cyprusUnited(topo) {
     geos.splice(geos.indexOf(nc), 1);
   } catch (e) { /* keep the map as it is */ }
 }
+function somaliaUnited(topo) {
+  try {
+    const geos = topo.objects.countries.geometries;
+    const so = geos.find(g => String(g.id) === "706"), sl = geos.find(g => g.properties && g.properties.name === "Somaliland");
+    if (!so || !sl) return;
+    const merged = topojson.mergeArcs(topo, [so, sl]);
+    so.type = merged.type; so.arcs = merged.arcs;
+    geos.splice(geos.indexOf(sl), 1);
+  } catch (e) { /* keep the map as it is */ }
+}
 function ukraineWithCrimea(topo) {
   try {
     const geos = topo.objects.countries.geometries;
@@ -195,7 +205,10 @@ function ukraineWithCrimea(topo) {
 async function loadWorld() {
   if (world) return world;
   const topo = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json");
-  // Only Africa (and nearby islands) is drawn.
+  // Only Africa (and nearby islands) is drawn. Natural Earth draws Somaliland separately: merged into Somalia.
+  // Western Sahara is its own country (Natural Earth already draws it separately; shown under its full name).
+  somaliaUnited(topo);
+  topo.objects.countries.geometries.forEach(g => { if (g.properties && g.properties.name === "W. Sahara") g.properties.name = "Western Sahara"; });
   world = topojson.feature(topo, topo.objects.countries).features
     .filter(f => { const c = d3.geoCentroid(f); return c[0] > -27 && c[0] < 60 && c[1] > -37 && c[1] < 38.5 && !["Spain", "Portugal", "Italy", "Greece", "Cyprus", "Malta", "Turkey", "Syria", "Lebanon", "Israel", "Palestine", "Jordan", "Saudi Arabia", "Yemen", "Oman", "United Arab Emirates", "Qatar", "Bahrain", "Kuwait", "Iraq", "Iran", "Fr. S. Antarctic Lands"].includes(f.properties.name); });
   return world;
