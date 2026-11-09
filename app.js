@@ -204,11 +204,11 @@ function ukraineWithCrimea(topo) {
 }
 async function loadWorld() {
   if (world) return world;
-  const topo = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json");
+  // world-atlas 2.0.2 (Natural Earth) with Western Sahara drawn as in UN/ISO 3166 maps: the whole territory,
+  // bordering Morocco at 27°40′N (Natural Earth gives most of it to Morocco). Built by scripts/fix-wsahara.js.
+  const topo = await d3.json("map/countries-50m.json");
   // Only Africa (and nearby islands) is drawn. Natural Earth draws Somaliland separately: merged into Somalia.
-  // Western Sahara is its own country (Natural Earth already draws it separately; shown under its full name).
   somaliaUnited(topo);
-  topo.objects.countries.geometries.forEach(g => { if (g.properties && g.properties.name === "W. Sahara") g.properties.name = "Western Sahara"; });
   world = topojson.feature(topo, topo.objects.countries).features
     .filter(f => { const c = d3.geoCentroid(f); return c[0] > -27 && c[0] < 60 && c[1] > -37 && c[1] < 38.5 && !["Spain", "Portugal", "Italy", "Greece", "Cyprus", "Malta", "Turkey", "Syria", "Lebanon", "Israel", "Palestine", "Jordan", "Saudi Arabia", "Yemen", "Oman", "United Arab Emirates", "Qatar", "Bahrain", "Kuwait", "Iraq", "Iran", "Fr. S. Antarctic Lands"].includes(f.properties.name); });
   return world;
