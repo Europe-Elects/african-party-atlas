@@ -79,7 +79,7 @@ jobs:
           PY
 
       - name: Assemble site
-        run: cp index.html style.css app.js _site/
+        run: cp -r index.html style.css app.js map _site/
 
       - uses: actions/upload-pages-artifact@v3
         with:
